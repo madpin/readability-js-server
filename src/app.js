@@ -7,13 +7,13 @@ const bodyParser = require("body-parser").json();
 const port = 3000;
 
 // HTTP client
-const axios = require("axios").default;
+const { request } = require("undici");
 
 // Readability, dom and dom purify
-const { JSDOM } = require("jsdom");
+const { parseHTML } = require("linkedom");
 const { Readability } = require("@mozilla/readability");
 const createDOMPurify = require("dompurify");
-const DOMPurify = createDOMPurify(new JSDOM("").window);
+const DOMPurify = createDOMPurify(parseHTML("").window);
 
 // Not too happy to allow iframe, but it's the only way to get youtube vids
 const domPurifyOptions = {
@@ -26,7 +26,7 @@ app.get("/", (req, res) => {
   }).end;
 });
 
-app.post("/", bodyParser, (req, res) => {
+app.post("/", bodyParser, async (req, res) => {
   const url = req.body.url;
 
   if (url === undefined || url === "") {
@@ -40,36 +40,42 @@ app.post("/", bodyParser, (req, res) => {
 
   console.log("Fetching " + url + "...");
 
-  axios
-    .get(url)
-    .then((response) => {
-      const sanitized = DOMPurify.sanitize(response.data, domPurifyOptions);
-
-      const dom = new JSDOM(sanitized, {
-        url: url,
-      });
-
-      const parsed = new Readability(dom.window.document).parse();
-
-      console.log("Fetched and parsed " + url + " successfully");
-
-      return res
-        .status(200)
-        .send({
-          url,
-          ...parsed,
-        })
-        .end();
-    })
-    .catch((error) => {
-      return res
-        .status(500)
-        .send({
-          error: "Some weird error fetching the content",
-          details: error,
-        })
-        .end();
+  try {
+    const response = await request(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+      },
     });
+    const body = await response.body.text();
+    const sanitized = DOMPurify.sanitize(body, domPurifyOptions);
+    const { document } = parseHTML(sanitized);
+
+    // We are not going to use the url from the request, but the one from the response
+    // as it may have been redirected
+    const responseUrl = response.headers["location"] || url;
+    document.baseURI = responseUrl;
+
+    const parsed = new Readability(document).parse();
+
+    console.log("Fetched and parsed " + url + " successfully");
+
+    return res
+      .status(200)
+      .send({
+        url,
+        ...parsed,
+      })
+      .end();
+  } catch (error) {
+    return res
+      .status(500)
+      .send({
+        error: "Some weird error fetching the content",
+        details: error,
+      })
+      .end();
+  }
 });
 
 // Start server and dump current server version
