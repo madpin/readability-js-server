@@ -2,6 +2,8 @@
 
 # Readability JS server
 
+This is a fork of [phpdocker-io/readability-js-server](https://github.com/phpdocker-io/readability-js-server) with a focus on improving performance and reducing the memory footprint.
+
 Mozilla's Readability.js as a service
 
 # What
@@ -76,6 +78,12 @@ Once you clone the repo:
 ~ yarn start
 ```
 
+# Improvements
+
+This fork includes the following improvements:
+* **Reduced memory footprint**: `jsdom` has been replaced with `linkedom` and `axios` with `undici`, which are more lightweight and memory-efficient libraries. This significantly reduces the memory usage of the server, especially under concurrent loads.
+* **Optimized configuration**: The number of `pm2` instances has been reduced from 5 to 2 by default. This can be easily changed in `pm2.json` if needed.
+
 # Notes
   * No configuration required. This might change if the need arises.
-  * The docker image runs via `pm2` and `node 20` with 5 processes.
+  * The docker image runs via `pm2` and `node 20` with 2 processes.
