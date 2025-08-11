@@ -32,10 +32,10 @@ jobs:
         id: docker_tags
         run: |
           if [[ "${GITHUB_REF##refs/heads/}" == "master" ]]; then
-            echo "tags=phpdockerio/readability-js-server:latest" >> $GITHUB_OUTPUT
+            echo "tags=madpin/readability-js-server:latest" >> $GITHUB_OUTPUT
           else
             BRANCH_NAME=${GITHUB_REF##refs/heads/}
-            echo "tags=phpdockerio/readability-js-server:${BRANCH_NAME}" >> $GITHUB_OUTPUT
+            echo "tags=madpin/readability-js-server:${BRANCH_NAME}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build & push container image
